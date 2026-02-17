@@ -1,0 +1,8 @@
+# MATLAB/Simulink 관련 제외 항목
+slprj/
+*.asv
+*.slxc
+*.mex*
+
+# 사용자가 만든 결과물 폴더 제외
+Work/
