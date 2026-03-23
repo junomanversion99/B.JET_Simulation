@@ -19,7 +19,8 @@ mass_cur   = localToColumn(simOut.mass_current);
 rho        = localToColumn(simOut.rho);
 Q_ts       = localToColumn(simOut.Q);
 a_B        = localToMatrix(simOut.a_B);      % 새로 추가
-CG_current = localToColumn(simOut.CG_current);
+F_aero_B   = localToMatrix(simOut.F_aero_B);
+M_aero_B   = localToMatrix(simOut.M_aero_B);
 
 %% 3) 길이 / 형상 정리
 disp('===== Signal sizes after conversion =====');
@@ -33,6 +34,8 @@ disp(['size(mass_cur)   = ', mat2str(size(mass_cur))]);
 disp(['size(rho)        = ', mat2str(size(rho))]);
 disp(['size(Q_ts)       = ', mat2str(size(Q_ts))]);
 disp(['size(a_B)        = ', mat2str(size(a_B))]);
+disp(['size(F_aero_B)   = ', mat2str(size(F_aero_B))]);
+disp(['size(M_aero_B)   = ', mat2str(size(M_aero_B))]);
 
 N = min([ ...
     length(t), ...
@@ -41,12 +44,13 @@ N = min([ ...
     size(v_B,1), ...
     size(V_rel,1), ...
     size(F_thrust_B,1), ...
+    size(F_aero_B,1), ...
+    size(M_aero_B,1), ...
     length(mass_cur), ...
-    length(CG_current), ...
     length(rho), ...
     length(Q_ts), ...
     size(a_B,1) ]);
-    
+
 t          = t(1:N);
 XYZ_E      = XYZ_E(1:N,:);
 z_E        = z_E(1:N);
@@ -57,7 +61,8 @@ mass_cur   = mass_cur(1:N);
 rho        = rho(1:N);
 Q_ts       = Q_ts(1:N);
 a_B        = a_B(1:N,:);
-CG_current = CG_current(1:N);
+F_aero_B   = F_aero_B(1:N,:);
+M_aero_B   = M_aero_B(1:N,:);
 
 if size(XYZ_E,2) < 3
     error('XYZ_E가 Nx3 형식이 아닙니다. 현재 크기: %s', mat2str(size(XYZ_E)));
@@ -73,6 +78,12 @@ if size(F_thrust_B,2) < 3
 end
 if size(a_B,2) < 3
     error('a_B가 Nx3 형식이 아닙니다. 현재 크기: %s', mat2str(size(a_B)));
+end
+if size(F_aero_B,2) < 3
+    error('F_aero_B가 Nx3 형식이 아닙니다. 현재 크기: %s', mat2str(size(F_aero_B)));
+end
+if size(M_aero_B,2) < 3
+    error('M_aero_B가 Nx3 형식이 아닙니다. 현재 크기: %s', mat2str(size(M_aero_B)));
 end
 
 %% 4) 기본 전처리
@@ -93,46 +104,6 @@ alt_plot = alt;
 alt_plot(alt_plot < 0) = 0;
 
 downrange = sqrt(x.^2 + y.^2);
-
-%% 4-1) Airspeed / Mach 계산
-V_rel_mag = sqrt(sum(V_rel.^2, 2));
-
-% ISA 간단 모델
-T0 = 288.15;
-g0 = 9.80665;
-R  = 287.05;
-gamma_air = 1.4;
-L  = 0.0065;
-
-alt_isa = alt;
-alt_isa(alt_isa < 0) = 0;
-alt_isa(alt_isa > 11000) = 11000;
-
-T_air = T0 - L * alt_isa;
-a_sound = sqrt(gamma_air * R * T_air);
-
-Mach = V_rel_mag ./ a_sound;
-
-%{
-%% 4-2) CP_current / F_st_current 계산
-CP_current = nan(N,1);
-F_st_current = nan(N,1);
-
-for i = 1:N
-    mach_i = Mach(i);
-    alt_i  = alt(i);
-
-    % DB 범위 제한
-    mach_i = min(max(mach_i, min(Aero.machVec)), max(Aero.machVec));
-    alt_i  = min(max(alt_i,  min(Aero.altVec)),  max(Aero.altVec));
-
-    % interp2: X=alt, Y=mach, V(row=mach, col=alt)
-    CP_current(i) = interp2(Aero.altVec, Aero.machVec, Aero.CP_DB, ...
-                            alt_i, mach_i, 'linear');
-
-    F_st_current(i) = (CP_current(i) - CG_current(i)) / Geom.D_ref;
-end
-%}
 
 %% 5) 연소구간 / 관성구간 분리
 thrust_mag = sqrt(sum(F_thrust_B(:,1:3).^2, 2));
@@ -181,6 +152,37 @@ landing_time = t(idx_land);
 landing_x = x(idx_land);
 landing_y = y(idx_land);
 landing_downrange = downrange(idx_land);
+
+%% Debug Figure. Aerodynamic force / moment-> 오류 해결 시 지우기
+figure('Color','w');
+plot(t, F_aero_B(:,1), 'LineWidth', 1.2); grid on;
+xlabel('Time [sec]'); ylabel('Force [N]');
+title('F_{aero,B,x}');
+
+figure('Color','w');
+plot(t, F_aero_B(:,2), 'LineWidth', 1.2); grid on;
+xlabel('Time [sec]'); ylabel('Force [N]');
+title('F_{aero,B,y}');
+
+figure('Color','w');
+plot(t, F_aero_B(:,3), 'LineWidth', 1.2); grid on;
+xlabel('Time [sec]'); ylabel('Force [N]');
+title('F_{aero,B,z}');
+
+figure('Color','w');
+plot(t, M_aero_B(:,1), 'LineWidth', 1.2); grid on;
+xlabel('Time [sec]'); ylabel('Moment [N·m]');
+title('M_{aero,B,x}');
+
+figure('Color','w');
+plot(t, M_aero_B(:,2), 'LineWidth', 1.2); grid on;
+xlabel('Time [sec]'); ylabel('Moment [N·m]');
+title('M_{aero,B,y}');
+
+figure('Color','w');
+plot(t, M_aero_B(:,3), 'LineWidth', 1.2); grid on;
+xlabel('Time [sec]'); ylabel('Moment [N·m]');
+title('M_{aero,B,z}');
 
 %% 9) CSV 저장
 landing_table = table( ...
@@ -349,43 +351,6 @@ title('Landing / Splash point', 'FontSize', 15);
 axis equal;
 set(gca, 'FontSize', 13);
 
-%{
-%% =========================================================
-% Figure 8. CP and CG vs Time
-%% =========================================================
-figure('Color','w');
-hold on; grid on; box on;
-
-plot(t(idx_burn),  CP_current(idx_burn), 'r-', 'LineWidth', 1.5);
-plot(t(idx_coast), CP_current(idx_coast), 'k-', 'LineWidth', 1.5);
-
-plot(t(idx_burn),  CG_current(idx_burn), 'r--', 'LineWidth', 1.5);
-plot(t(idx_coast), CG_current(idx_coast), 'k--', 'LineWidth', 1.5);
-
-xlabel('Time [sec]', 'FontSize', 14);
-ylabel('Position from Nose [m]', 'FontSize', 14);
-title('CP and CG vs Time', 'FontSize', 15);
-legend('CP burning','CP coasting','CG burning','CG coasting', ...
-       'Location', 'best');
-set(gca, 'FontSize', 13);
-
-%% =========================================================
-% Figure 9. Static Stability Margin vs Time
-%% =========================================================
-figure('Color','w');
-hold on; grid on; box on;
-
-plot(t(idx_burn),  F_st_current(idx_burn), 'r-', 'LineWidth', 1.8);
-plot(t(idx_coast), F_st_current(idx_coast), 'k-', 'LineWidth', 1.8);
-yline(0, '--b', 'LineWidth', 1.2);
-
-xlabel('Time [sec]', 'FontSize', 14);
-ylabel('F_{st} [calibers]', 'FontSize', 14);
-title('Static Stability Margin vs Time', 'FontSize', 15);
-legend('burning','coasting','neutral stability', 'Location', 'best');
-set(gca, 'FontSize', 13);
-%}
-
 %% 10) 결과 출력
 fprintf('\n========== Postprocess Result ==========\n');
 fprintf('Burn end time         : %.4f s\n', burn_end_time);
@@ -396,12 +361,6 @@ fprintf('Landing time          : %.4f s\n', landing_time);
 fprintf('Landing point         : x = %.4f m, y = %.4f m\n', landing_x, landing_y);
 fprintf('Landing downrange     : %.4f m\n', landing_downrange);
 fprintf('CSV saved             : landing_splash_point.csv\n');
-%{
-[Fst_min, idx_Fstmin] = min(F_st_current);
-[Fst_max, idx_Fstmax] = max(F_st_current);
-fprintf('Min F_st              : %.4f at t = %.4f s\n', Fst_min, t(idx_Fstmin));
-fprintf('Max F_st              : %.4f at t = %.4f s\n', Fst_max, t(idx_Fstmax));
-%}
 fprintf('========================================\n');
 
 %% =========================================================
@@ -484,4 +443,6 @@ function out = localToMatrix(sig)
     if r <= 3 && c > 3
         out = out.';
     end
+
+    
 end
