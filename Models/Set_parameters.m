@@ -2,7 +2,16 @@
 Mass.mass_initial = 14;
 Mass.mass_fuel = 1.57;
 Mass.mass_final = Mass.mass_initial - Mass.mass_fuel;
+%{
+% [kg * m^2]
+Mass.MOI_initial = [0.036, 0, 0;
+                    0, 2.886, 0;
+                    0, 0, 2.886];
 
+Mass.MOI_final   = [0.034, 0, 0;
+                    0, 2.731, 0;
+                    0, 0, 2.731];
+%}
 % [kg * mm^2]
 Mass.MOI_initial_raw = [39863.025,  -383.345,    2309.809;
                    -383.345,   5131347.368, 3.468;
@@ -59,7 +68,7 @@ Init.latitude_initial = 40.138633;                                              
 Init.logitutde_initial = 139.984850;                                             % 발사지점 경도 [deg]
 
 %% 공력계수 데이터 받아오기
-AeroDB = load('Aero_DB_Roll_0322.mat');
+AeroDB = load('Aero_DB_Roll.mat');
 
 Aero.alphaVec = AeroDB.alphaVec(:)';
 Aero.betaVec  = AeroDB.betaVec(:)';
@@ -85,7 +94,8 @@ Prop.t_thrust = ThrustTbl{:,1};
 Prop.F_thrust = ThrustTbl{:,2};
 
 %% 버스 오류 해결
-names = {'C_x','C_y','C_z','C_l','C_Lp','C_m','C_Mq','C_n','C_Nr'};
+%names = {'C_x','C_y','C_z','C_l','C_Lp','C_m','C_Mq','C_n','C_Nr'};
+names = {'C_A','C_Y','C_Z','C_LL','C_LLp','C_M','C_Mq','C_LN','C_Nr'};
 
 clear elems
 for k = 1:numel(names)
