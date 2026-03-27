@@ -153,6 +153,7 @@ landing_x = x(idx_land);
 landing_y = y(idx_land);
 landing_downrange = downrange(idx_land);
 
+%{
 %% Debug Figure. Aerodynamic force / moment-> 오류 해결 시 지우기
 figure('Color','w');
 plot(t, F_aero_B(:,1), 'LineWidth', 1.2); grid on;
@@ -183,6 +184,7 @@ figure('Color','w');
 plot(t, M_aero_B(:,3), 'LineWidth', 1.2); grid on;
 xlabel('Time [sec]'); ylabel('Moment [N·m]');
 title('M_{aero,B,z}');
+%}
 
 %% 9) CSV 저장
 landing_table = table( ...
