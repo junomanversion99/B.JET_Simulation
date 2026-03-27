@@ -67,7 +67,29 @@ Init.escape_altitude = 5 * sin(deg2rad(Init.launch_angle(2)));            % 5는
 Init.latitude_initial = 40.138633;                                               % 발사지점 위도 [deg]
 Init.logitutde_initial = 139.984850;                                             % 발사지점 경도 [deg]
 
-%% 공력계수 데이터 받아오기
+%% 카나드 있는 공력계수 데이터 받아오기
+AeroDB = load('Aero_DB_Roll_Canard_On_0320.mat');
+
+Aero.delrVec  = AeroDB.delrVec(:)';
+Aero.alphaVec = AeroDB.alphaVec(:)';
+Aero.betaVec  = AeroDB.betaVec(:)';
+Aero.machVec  = AeroDB.machVec(:)';
+Aero.altVec   = AeroDB.altVec(:)';
+Aero.altVec_dynamic = Aero.altVec;
+
+Aero.CA_DB   = AeroDB.CA_DelR;
+Aero.CY_DB   = AeroDB.CY_DelR;
+Aero.CN_DB   = AeroDB.CN_DelR;
+Aero.CLL_DB  = AeroDB.CLL_DelR;
+Aero.CM_DB   = AeroDB.CM_DelR;
+Aero.CLN_DB  = AeroDB.CLN_DelR;
+
+Aero.CLLP_DB = AeroDB.CLLP_DelR;
+Aero.CMQ_DB  = AeroDB.CMQ_DelR;
+Aero.CLNR_DB = AeroDB.CLNR_DelR;
+
+%% 카나드 없는 공력계수 데이터 받아오기
+%{
 AeroDB = load('Aero_DB_Roll.mat');
 
 Aero.alphaVec = AeroDB.alphaVec(:)';
@@ -86,6 +108,7 @@ Aero.CLN_DB  = AeroDB.CLN_DB;
 Aero.CLLP_DB = AeroDB.CLLP_DB;
 Aero.CMQ_DB  = AeroDB.CMQ_DB;
 Aero.CLNR_DB = AeroDB.CLNR_DB;
+%}
 
 %% 추력 데이터 받아오기
 ThrustTbl = readtable('Thrust_Raw_Data_polaris.csv');
