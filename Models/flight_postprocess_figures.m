@@ -331,6 +331,138 @@ set(gca, 'FontSize', 13);
 view(35, 22);
 
 %% =========================================================
+% Figure 7. 3D Flight Trajectory & 6-DOF Pose Animation (NED 정석)
+%% =========================================================
+disp('🚀 3D 궤적 및 자세 통합 애니메이션을 준비합니다...');
+
+% 1) 오일러 각 데이터 불러오기
+try
+    Euler_angles = localToMatrix(simOut.Euler_angles);
+    Euler_angles = Euler_angles(1:N, :);
+    euler_rad = deg2rad(Euler_angles);
+catch
+    error('simOut에 Euler_angles 데이터가 없습니다.');
+end
+
+% 2) 비디오 저장 설정
+video_filename = 'Rocket_Trajectory_Pose_Corrected.mp4';
+v = VideoWriter(video_filename, 'MPEG-4');
+v.FrameRate = 30;
+v.Quality = 100;
+open(v);
+
+% 3) Figure 초기화 및 직교성 강제
+target_width = 1280;
+target_height = 720;
+fig = figure('Name', '3D Trajectory & Pose (Right-Handed)', 'Color', 'w');
+set(fig, 'Position', [100, 100, target_width, target_height]);
+hold on; grid on; box on;
+
+% 🚨 [핵심 해결책 1] 데이터 종횡비 1:1:1 강제 (축 찌그러짐 방지)
+daspect([1 1 1]); 
+
+% 🚨 [핵심 해결책 2] 축 반전 설정
+% ZDir을 reverse하여 Down이 아래를 향하게 하고, YDir을 reverse하여 오른손 법칙 시점을 유지합니다.
+set(gca, 'ZDir', 'reverse');
+set(gca, 'YDir', 'reverse');
+view(45, 20);
+
+% 4) 🌟 [요구사항 반영] 3D 좌표계 원점(0,0,0)에 기준 좌표계(Earth Frame) 표시
+ref_len = max(max(x)-min(x), max(abs(z_E))) * 0.1; % 궤적 크기에 맞춰 기준축 길이 설정
+if ref_len < 10, ref_len = 10; end
+
+plot3([0 ref_len], [0 0], [0 0], 'Color', [0.3 0.3 0.3], 'LineWidth', 2);
+plot3([0 0], [0 ref_len], [0 0], 'Color', [0.3 0.3 0.3], 'LineWidth', 2);
+plot3([0 0], [0 0], [0 ref_len], 'Color', [0.3 0.3 0.3], 'LineWidth', 2);
+
+text(ref_len*1.1, 0, 0, '$X_E$ (North)', 'Interpreter', 'latex', 'FontSize', 12, 'FontWeight', 'bold');
+text(0, ref_len*1.1, 0, '$Y_E$ (East)', 'Interpreter', 'latex', 'FontSize', 12, 'FontWeight', 'bold');
+text(0, 0, ref_len*1.1, '$Z_E$ (Down)', 'Interpreter', 'latex', 'FontSize', 12, 'FontWeight', 'bold');
+
+% 축 범위 고정 (z_E는 음수/양수 모두 포함되므로 범위를 넉넉히 잡습니다)
+margin_x = (max(x) - min(x)) * 0.1 + 10;
+margin_y = (max(y) - min(y)) * 0.1 + 10;
+margin_z = (max(abs(z_E))) * 0.1 + 10;
+
+xlim([min(x)-margin_x, max(x)+margin_x]);
+ylim([min(y)-margin_y, max(y)+margin_y]);
+zlim([min(z_E)-margin_z, max(z_E)+margin_z]);
+
+xlabel('North [m]', 'FontSize', 12);
+ylabel('East [m]', 'FontSize', 12);
+zlabel('Down [m]', 'FontSize', 12);
+
+% 5) 궤적 및 기체 객체 초기화
+% 🚨 [핵심 해결책 3] alt_plot 대신 순수한 z_E 사용
+hTraj_burn  = plot3(NaN, NaN, NaN, 'r-', 'LineWidth', 2);
+hTraj_coast = plot3(NaN, NaN, NaN, 'k-', 'LineWidth', 2);
+
+axis_len = ref_len * 0.5; % 기체 축의 길이 (기준 좌표계의 절반 크기)
+pX = plot3([0 0], [0 0], [0 0], 'r', 'LineWidth', 3); 
+pY = plot3([0 0], [0 0], [0 0], 'g', 'LineWidth', 3);
+pZ = plot3([0 0], [0 0], [0 0], 'b', 'LineWidth', 3);
+
+label_dist = axis_len * 1.2;
+hText_XB = text(0, 0, 0, '$X_B$', 'Interpreter', 'latex', 'FontSize', 14, 'FontWeight', 'bold', 'Color', 'r');
+hText_YB = text(0, 0, 0, '$Y_B$', 'Interpreter', 'latex', 'FontSize', 14, 'FontWeight', 'bold', 'Color', 'g');
+hText_ZB = text(0, 0, 0, '$Z_B$', 'Interpreter', 'latex', 'FontSize', 14, 'FontWeight', 'bold', 'Color', 'b');
+
+hPos = plot3(x(1), y(1), z_E(1), 'ko', 'MarkerSize', 6, 'MarkerFaceColor', 'y');
+
+% 6) 애니메이션 루프
+target_frames = 400; 
+skip_step = max(1, round(N / target_frames));
+
+for i = 1:skip_step:N
+    % (A) 궤적 업데이트 (순수 z_E 사용)
+    if i <= burn_end_idx
+        set(hTraj_burn, 'XData', x(1:i), 'YData', y(1:i), 'ZData', z_E(1:i));
+    else
+        set(hTraj_burn, 'XData', x(1:burn_end_idx), 'YData', y(1:burn_end_idx), 'ZData', z_E(1:burn_end_idx));
+        set(hTraj_coast, 'XData', x(burn_end_idx:i), 'YData', y(burn_end_idx:i), 'ZData', z_E(burn_end_idx:i));
+    end
+    
+    cx = x(i); cy = y(i); cz = z_E(i);
+    set(hPos, 'XData', cx, 'YData', cy, 'ZData', cz);
+    
+    % (B) 기체 자세 회전 (NED 기준)
+    C_b2e = eul2rotm(euler_rad(i, :), 'ZYX');
+    e1 = [1; 0; 0]; e2 = [0; 1; 0]; e3 = [0; 0; 1];
+    
+    % 🚨 Z성분 부호 반전 없이 순수 계산값 그대로 사용 (오른손 법칙 완벽 유지)
+    X_vec = C_b2e * e1 * axis_len;
+    Y_vec = C_b2e * e2 * axis_len;
+    Z_vec = C_b2e * e3 * axis_len;
+    
+    % (C) 기체 축 그리기
+    set(pX, 'XData', [cx, cx + X_vec(1)], 'YData', [cy, cy + X_vec(2)], 'ZData', [cz, cz + X_vec(3)]);
+    set(pY, 'XData', [cx, cx + Y_vec(1)], 'YData', [cy, cy + Y_vec(2)], 'ZData', [cz, cz + Y_vec(3)]);
+    set(pZ, 'XData', [cx, cx + Z_vec(1)], 'YData', [cy, cy + Z_vec(2)], 'ZData', [cz, cz + Z_vec(3)]);
+    
+    % (D) 라벨 위치 업데이트
+    Lbl_X = C_b2e * e1 * label_dist;
+    Lbl_Y = C_b2e * e2 * label_dist;
+    Lbl_Z = C_b2e * e3 * label_dist;
+    
+    set(hText_XB, 'Position', [cx + Lbl_X(1), cy + Lbl_X(2), cz + Lbl_X(3)]);
+    set(hText_YB, 'Position', [cx + Lbl_Y(1), cy + Lbl_Y(2), cz + Lbl_Y(3)]);
+    set(hText_ZB, 'Position', [cx + Lbl_Z(1), cy + Lbl_Z(2), cz + Lbl_Z(3)]);
+    
+    % 제목 업데이트 (z_E는 아래가 양수이므로 -z_E를 출력하여 고도로 표시)
+    title(sprintf('Flight Trajectory & Pose (Right-Handed) | Time: %.2f s\nAlt: %.1f m | Mach: %.2f', ...
+          t(i), -cz, norm(v_B(i,:))/340));
+    
+    drawnow;
+    
+    % (E) 프레임 캡처
+    frame = getframe(fig);
+    img = imresize(frame.cdata, [target_height, target_width]);
+    writeVideo(v, img);
+end
+
+close(v);
+disp('✅ 완벽한 직교 좌표계를 갖춘 통합 애니메이션 비디오 저장이 완료되었습니다.');
+%% =========================================================
 % Figure 7. Landing / Splash range
 %% =========================================================
 figure('Color','w');

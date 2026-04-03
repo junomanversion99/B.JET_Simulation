@@ -37,9 +37,9 @@ Prop.CG_dot_negative = (Prop.CG_initial - Prop.CG_final) / Prop.burn_time;
 
 
 %Prop.Thrust = 0;                                                 % 추후 값 받기
-% [m]
-Geom.D_ref = 0.113;
-Geom.S_ref = (Geom.D_ref^2)*(pi/4);
+
+Geom.D_ref = 0.113; % [m]
+Geom.S_ref = (Geom.D_ref^2)*(pi/4); % [m^2]
 
 Init.launch_angle = [0; 85; 0];                                       % [deg] 낙하범위 계산할 때 조절하세용 (초반 회전행렬값도 바꿔야함)
 Init.initial_launch_angle = deg2rad(Init.launch_angle);       % launch angle[deg]을 [rad]로 바꿔 입력
@@ -117,8 +117,7 @@ Prop.t_thrust = ThrustTbl{:,1};
 Prop.F_thrust = ThrustTbl{:,2};
 
 %% 버스 오류 해결
-%names = {'C_x','C_y','C_z','C_l','C_Lp','C_m','C_Mq','C_n','C_Nr'};
-names = {'C_A','C_Y','C_Z','C_LL','C_LLp','C_M','C_Mq','C_LN','C_Nr'};
+names = {'C_A','C_Y','C_N','C_LL','C_LLp','C_M','C_Mq','C_LN','C_LNr'};
 
 clear elems
 for k = 1:numel(names)
