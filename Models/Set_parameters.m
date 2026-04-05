@@ -38,7 +38,7 @@ Prop.CG_dot_negative = (Prop.CG_initial - Prop.CG_final) / Prop.burn_time;
 
 %Prop.Thrust = 0;                                                 % 추후 값 받기
 
-Geom.D_ref = 0.113; % [m]
+Geom.D_ref = 0.123; % [m]
 Geom.S_ref = (Geom.D_ref^2)*(pi/4); % [m^2]
 
 Init.launch_angle = [0; 85; 0];                                       % [deg] 낙하범위 계산할 때 조절하세용 (초반 회전행렬값도 바꿔야함)
@@ -68,7 +68,7 @@ Init.latitude_initial = 40.138633;                                              
 Init.logitutde_initial = 139.984850;                                             % 발사지점 경도 [deg]
 
 %% 카나드 있는 공력계수 데이터 받아오기
-AeroDB = load('Aero_DB_Roll_Canard_On_0320.mat');
+AeroDB = load('Aero_DB_Roll_Canard_On_0322.mat');
 
 Aero.delrVec  = AeroDB.delrVec(:)';
 Aero.alphaVec = AeroDB.alphaVec(:)';
