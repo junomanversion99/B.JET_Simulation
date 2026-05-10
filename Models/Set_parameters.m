@@ -68,7 +68,7 @@ Init.latitude_initial = 40.138633;                                              
 Init.logitutde_initial = 139.984850;                                             % 발사지점 경도 [deg]
 
 %% 카나드 있는 공력계수 데이터 받아오기
-AeroDB = load('Aero_DB_Roll_Canard_On_0322.mat');
+AeroDB = load('Aero_DB_Roll_Canard_On_0409.mat');
 
 Aero.delrVec  = AeroDB.delrVec(:)';
 Aero.alphaVec = AeroDB.alphaVec(:)';
@@ -132,3 +132,7 @@ AeroCoeffBus.Elements = elems;
 
 %% Date 정의
 Date0 = 2460000;
+
+%% Sensor modeling
+
+seed_val = randi(100000); % 난수 랜덤 생성

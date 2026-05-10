@@ -95,7 +95,7 @@ hText_ZB = text(0, 0, 0, '$Z_B$', 'Interpreter', 'latex', 'Color', 'b', 'FontWei
 
 %% 🎥 5. VideoWriter 설정
 % 🚨 [오류 방지] 특수문자 및 공백 제거로 OS 권한 거부 완벽 차단
-video_filename = 'B.JET Flight Trajectory & 3D Pose Visualizer_0406_2.mp4';
+video_filename = 'B.JET Flight Trajectory & 3D Pose Visualizer_0424(TVC 알파,베타On).mp4';
 v = VideoWriter(video_filename, 'MPEG-4');
 v.FrameRate = fps; 
 v.Quality = 100;

@@ -23,7 +23,7 @@ function [F_aero_B, M_aero_B] = Calculate_F_aero_B_and_M_aero_B(Q, V_mag, Coeffs
 
     %% 2. 수치적 안정성을 위한 속도 임계값 설정
     % 속도가 0인 초기 상태에서 분모가 0이 되어 NaN이 발생하는 것 방지
-    eps_v = 5;
+    eps_v = 5; %5m/s
     if V_mag < eps_v
         v_denom = eps_v; 
     else

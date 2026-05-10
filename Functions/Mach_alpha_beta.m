@@ -20,7 +20,7 @@ function [Mach, alpha, beta] = Mach_alpha_beta(V_rel, V_sound)
 
     
     % --- 예외 처리 시작 ---
-    eps_v = 5.0; % 속도 임계값 (m/s) -> 1e-6은 너무 작다... 저속특이점 현상 생김
+    eps_v = 1.0; % 속도 임계값 (m/s) -> 1e-6은 너무 작다... 저속특이점 현상 생김
     
     if V_mag < eps_v
         % 공력이 유의미하지 않은 저속 구간에서는 각도를 0으로 묶음
